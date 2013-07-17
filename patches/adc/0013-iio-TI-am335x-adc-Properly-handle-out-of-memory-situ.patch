@@ -1,0 +1,51 @@
+From 62386059d352eca7e213f8d223a057de41c08259 Mon Sep 17 00:00:00 2001
+From: Russ Dill <Russ.Dill@ti.com>
+Date: Wed, 17 Jul 2013 23:52:44 +0100
+Subject: [PATCH 13/17] iio: TI-am335x-adc: Properly handle out of memory
+ situation.
+
+If we fail to allocate a buffer, unmask the interrupt to allow a retry.
+The interrupt handler will be re-run, and our workqueue rescheduled.
+If we are able to allocate memory next time around, everything will
+continue as normal, otherwise, we will eventually get an underrun.
+Before this patch, the driver would stop capturing without any
+indication of error to the IIO subsystem or the user.
+
+Signed-off-by: Russ Dill <Russ.Dill@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
+---
+ drivers/iio/adc/ti_am335x_adc.c |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/iio/adc/ti_am335x_adc.c b/drivers/iio/adc/ti_am335x_adc.c
+index 8203aa2..b6b871c 100644
+--- a/drivers/iio/adc/ti_am335x_adc.c
++++ b/drivers/iio/adc/ti_am335x_adc.c
+@@ -206,7 +206,7 @@ static void tiadc_poll_handler(struct work_struct *work_s)
+ 	fifo1count = tiadc_readl(adc_dev, REG_FIFO1CNT);
+ 	inputbuffer = kmalloc((fifo1count + 1) * sizeof(u32), GFP_KERNEL);
+ 	if (inputbuffer == NULL)
+-		return;
++		goto out;
+ 	/*
+ 	 * Wait for ADC sequencer to settle down.
+ 	 * There could be a scenario where in we
+@@ -222,12 +222,14 @@ static void tiadc_poll_handler(struct work_struct *work_s)
+ 	}
+ 
+ 	buffer->access->store_to(buffer, (u8 *) inputbuffer);
++	kfree(inputbuffer);
++
++out:
+ 	tiadc_writel(adc_dev, REG_IRQSTATUS,
+ 			IRQENB_FIFO1THRES);
+ 	tiadc_writel(adc_dev, REG_IRQENABLE,
+ 			IRQENB_FIFO1THRES);
+ 
+-	kfree(inputbuffer);
+ }
+ 
+ static int tiadc_buffer_preenable(struct iio_dev *idev)
+-- 
+1.7.9.5
+

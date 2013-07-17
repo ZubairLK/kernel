@@ -1,0 +1,34 @@
+From 1eb278ff6e9204cfaa10dcdd80d69288c111acd5 Mon Sep 17 00:00:00 2001
+From: Russ Dill <Russ.Dill@ti.com>
+Date: Wed, 17 Jul 2013 23:37:54 +0100
+Subject: [PATCH 11/17] iio: TI-am335x-adc: Also clear threshold event when
+ clearing overrun event
+
+When an overrun occurs, the FIFO is cleared. If a FIFO threshold event
+was pending, the data is now gone. Clear the threshold event when
+handling an overrun (or underflow).
+
+Signed-off-by: Russ Dill <Russ.Dill@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
+---
+ drivers/iio/adc/ti_am335x_adc.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/iio/adc/ti_am335x_adc.c b/drivers/iio/adc/ti_am335x_adc.c
+index 720f78b..084ed7e 100644
+--- a/drivers/iio/adc/ti_am335x_adc.c
++++ b/drivers/iio/adc/ti_am335x_adc.c
+@@ -172,8 +172,8 @@ static irqreturn_t tiadc_irq(int irq, void *private)
+ 		config = tiadc_readl(adc_dev, REG_CTRL);
+ 		config &= ~(CNTRLREG_TSCSSENB);
+ 		tiadc_writel(adc_dev, REG_CTRL, config);
+-		tiadc_writel(adc_dev, REG_IRQSTATUS,
+-				IRQENB_FIFO1OVRRUN | IRQENB_FIFO1UNDRFLW);
++		tiadc_writel(adc_dev, REG_IRQSTATUS, IRQENB_FIFO1THRES
++				| IRQENB_FIFO1OVRRUN | IRQENB_FIFO1UNDRFLW);
+ 		tiadc_writel(adc_dev, REG_CTRL,
+ 				(config | CNTRLREG_TSCSSENB));
+ 		return IRQ_HANDLED;
+-- 
+1.7.9.5
+

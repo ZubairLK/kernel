@@ -1,4 +1,4 @@
-From d1b1cd2bcbc34ccc853c5f1b472b9102a68caca5 Mon Sep 17 00:00:00 2001
+From d8071d8d9dcc4abe3dc419b0189558b4056c99a7 Mon Sep 17 00:00:00 2001
 From: Pantelis Antoniou <panto@antoniou-consulting.com>
 Date: Fri, 28 Dec 2012 21:00:31 +0200
 Subject: [PATCH 02/11] capemgr: Beaglebone capemanager
@@ -1855,5 +1855,5 @@ index 0000000..651f48d
 +MODULE_LICENSE("GPL");
 +MODULE_ALIAS("platform:bone_capemgr");
 -- 
-1.8.2.1
+1.7.9.5
 
