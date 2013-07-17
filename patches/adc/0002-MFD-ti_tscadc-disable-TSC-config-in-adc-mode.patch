@@ -1,24 +1,21 @@
-From dec55037c80e16d1abef2dd7c3ab3491a46c4481 Mon Sep 17 00:00:00 2001
-From: Zubair Lutfullah <zubair.lutfullah@gmail.com>
-Date: Thu, 4 Jul 2013 23:14:24 +0100
-Subject: [PATCH] MFD: ti_tscadc: disable TSC control
-
-Register bits when TSC not in use
+From f1e813a72fc3ac3e8404b551aea1c21419121ee0 Mon Sep 17 00:00:00 2001
+From: "Patil, Rachna" <rachna@ti.com>
+Date: Wed, 17 Jul 2013 21:26:37 +0100
+Subject: [PATCH 02/17] MFD: ti_tscadc: disable TSC config in adc mode
 
 AFE Pen Ctrl and TouchScreen transistors enabling is not
-
 required when only ADC mode is being used, so check for availability of
-
 TSC driver before accessing control register.
 
-This patch is forward ported from the 3.2 based Arago tree maintained
-by TI. Original author is Patil, Rachna
+Signed-off-by: Patil, Rachna <rachna@ti.com>
+Acked-by: Vaibhav Hiremath <hvaibhav@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
 ---
  drivers/mfd/ti_am335x_tscadc.c |   18 +++++++++++-------
  1 file changed, 11 insertions(+), 7 deletions(-)
 
 diff --git a/drivers/mfd/ti_am335x_tscadc.c b/drivers/mfd/ti_am335x_tscadc.c
-index b003a16..6b87f37 100644
+index b003a16..d72001c 100644
 --- a/drivers/mfd/ti_am335x_tscadc.c
 +++ b/drivers/mfd/ti_am335x_tscadc.c
 @@ -208,13 +208,14 @@ static	int ti_tscadc_probe(struct platform_device *pdev)

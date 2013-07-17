@@ -1,0 +1,44 @@
+From a7d0322654307bf7e0979d91cdb66835c3355b2e Mon Sep 17 00:00:00 2001
+From: Russ Dill <Russ.Dill@ti.com>
+Date: Wed, 17 Jul 2013 23:58:26 +0100
+Subject: [PATCH 16/17] iio: TI-am335x-adc: Remove unnecessary delay
+
+This delay was added to allow the ADC time to sample
+all channels. The sequencer now waits for the ADC
+to sample the data. This delay is not needed anymore.
+
+Signed-off-by: Russ Dill <Russ.Dill@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
+---
+ drivers/iio/adc/ti_am335x_adc.c |    8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/drivers/iio/adc/ti_am335x_adc.c b/drivers/iio/adc/ti_am335x_adc.c
+index e38b43d..b14eb99 100644
+--- a/drivers/iio/adc/ti_am335x_adc.c
++++ b/drivers/iio/adc/ti_am335x_adc.c
+@@ -33,7 +33,6 @@
+ #include <linux/iio/trigger_consumer.h>
+ #include <linux/iio/kfifo_buf.h>
+ #include <linux/iio/sysfs.h>
+-#include <linux/delay.h>
+ 
+ struct tiadc_device {
+ 	struct ti_tscadc_dev *mfd_tscadc;
+@@ -214,13 +213,6 @@ static void tiadc_poll_handler(struct work_struct *work_s)
+ 	inputbuffer = kmalloc((fifo1count) * sizeof(u32), GFP_KERNEL);
+ 	if (inputbuffer == NULL)
+ 		goto out;
+-	/*
+-	 * Wait for ADC sequencer to settle down.
+-	 * There could be a scenario where in we
+-	 * try to read data from ADC before
+-	 * it is available.
+-	 */
+-	udelay(500);
+ 
+ 	for (i = 0; i < fifo1count; i++) {
+ 		readx1 = tiadc_readl(adc_dev, REG_FIFO1);
+-- 
+1.7.9.5
+

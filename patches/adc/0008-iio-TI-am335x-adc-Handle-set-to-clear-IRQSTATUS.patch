@@ -1,0 +1,54 @@
+From f7ead2bb10d22128daa687a7fd64db8c0dba4f87 Mon Sep 17 00:00:00 2001
+From: Russ Dill <Russ.Dill@ti.com>
+Date: Wed, 17 Jul 2013 23:20:04 +0100
+Subject: [PATCH 08/17] iio: TI-am335x-adc: Handle set to clear IRQSTATUS
+
+The driver is currently mishandling the IRQSTATUS register by peforming
+a read/update/write cycle. The actual functionality of the register is as follows:
+
+Write 0 = No action.
+Read 0 = No (enabled) event pending.
+Read 1 = Event pending.
+Write 1 = Clear (raw) event.
+
+By reading the status and writing it back, the driver is clearing
+all pending events, not just the one indicated in the bitmask.
+
+Signed-off-by: Russ Dill <Russ.Dill@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
+---
+ drivers/iio/adc/ti_am335x_adc.c |   11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/iio/adc/ti_am335x_adc.c b/drivers/iio/adc/ti_am335x_adc.c
+index f18fb85..aee55cc 100644
+--- a/drivers/iio/adc/ti_am335x_adc.c
++++ b/drivers/iio/adc/ti_am335x_adc.c
+@@ -179,7 +179,7 @@ static irqreturn_t tiadc_irq(int irq, void *private)
+ 			wake_up_interruptible(&adc_dev->wq_data_avail);
+ 		}
+ 		tiadc_writel(adc_dev, REG_IRQSTATUS,
+-				(status | IRQENB_FIFO1THRES));
++					IRQENB_FIFO1THRES);
+ 		return IRQ_HANDLED;
+ 	} else if ((status &  IRQENB_FIFO1OVRRUN) ||
+ 			(status &  IRQENB_FIFO1UNDRFLW)) {
+@@ -187,12 +187,9 @@ static irqreturn_t tiadc_irq(int irq, void *private)
+ 		config &= ~(CNTRLREG_TSCSSENB);
+ 		tiadc_writel(adc_dev,  REG_CTRL, config);
+ 
+-		if (status &  IRQENB_FIFO1UNDRFLW)
+-			tiadc_writel(adc_dev,  REG_IRQSTATUS,
+-			(status |  IRQENB_FIFO1UNDRFLW));
+-		else
+-			tiadc_writel(adc_dev,  REG_IRQSTATUS,
+-				(status |  IRQENB_FIFO1OVRRUN));
++		tiadc_writel(adc_dev, REG_IRQSTATUS,
++				IRQENB_FIFO1OVRRUN |
++				IRQENB_FIFO1UNDRFLW);
+ 
+ 		tiadc_writel(adc_dev,  REG_CTRL,
+ 			(config |  CNTRLREG_TSCSSENB));
+-- 
+1.7.9.5
+

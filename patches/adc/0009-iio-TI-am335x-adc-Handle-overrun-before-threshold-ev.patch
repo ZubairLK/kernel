@@ -1,0 +1,60 @@
+From b74054619c1bb476c7c87916a31835819a52dd61 Mon Sep 17 00:00:00 2001
+From: Russ Dill <Russ.Dill@ti.com>
+Date: Wed, 17 Jul 2013 23:25:31 +0100
+Subject: [PATCH 09/17] iio: TI-am335x-adc: Handle overrun before threshold
+ event
+
+If an overrun occurs, the threshold event is meaningless, handle
+the overrun event first.
+
+Signed-off-by: Russ Dill <Russ.Dill@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
+---
+ drivers/iio/adc/ti_am335x_adc.c |   24 ++++++++++--------------
+ 1 file changed, 10 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/iio/adc/ti_am335x_adc.c b/drivers/iio/adc/ti_am335x_adc.c
+index aee55cc..d7e2426 100644
+--- a/drivers/iio/adc/ti_am335x_adc.c
++++ b/drivers/iio/adc/ti_am335x_adc.c
+@@ -168,7 +168,16 @@ static irqreturn_t tiadc_irq(int irq, void *private)
+ 	unsigned int status, config;
+ 
+ 	status = tiadc_readl(adc_dev, REG_IRQSTATUS);
+-	if (status & IRQENB_FIFO1THRES) {
++	if (status & IRQENB_FIFO1OVRRUN) {
++		config = tiadc_readl(adc_dev, REG_CTRL);
++		config &= ~(CNTRLREG_TSCSSENB);
++		tiadc_writel(adc_dev, REG_CTRL, config);
++		tiadc_writel(adc_dev, REG_IRQSTATUS,
++				IRQENB_FIFO1OVRRUN | IRQENB_FIFO1UNDRFLW);
++		tiadc_writel(adc_dev, REG_CTRL,
++				(config | CNTRLREG_TSCSSENB));
++		return IRQ_HANDLED;
++	} else if (status & IRQENB_FIFO1THRES) {
+ 		tiadc_writel(adc_dev, REG_IRQCLR,
+ 				IRQENB_FIFO1THRES);
+ 
+@@ -181,19 +190,6 @@ static irqreturn_t tiadc_irq(int irq, void *private)
+ 		tiadc_writel(adc_dev, REG_IRQSTATUS,
+ 					IRQENB_FIFO1THRES);
+ 		return IRQ_HANDLED;
+-	} else if ((status &  IRQENB_FIFO1OVRRUN) ||
+-			(status &  IRQENB_FIFO1UNDRFLW)) {
+-		config = tiadc_readl(adc_dev,  REG_CTRL);
+-		config &= ~(CNTRLREG_TSCSSENB);
+-		tiadc_writel(adc_dev,  REG_CTRL, config);
+-
+-		tiadc_writel(adc_dev, REG_IRQSTATUS,
+-				IRQENB_FIFO1OVRRUN |
+-				IRQENB_FIFO1UNDRFLW);
+-
+-		tiadc_writel(adc_dev,  REG_CTRL,
+-			(config |  CNTRLREG_TSCSSENB));
+-		return IRQ_HANDLED;
+ 	} else {
+ 		return IRQ_NONE;
+ 	}
+-- 
+1.7.9.5
+

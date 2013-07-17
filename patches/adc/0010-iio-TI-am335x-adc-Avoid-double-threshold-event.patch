@@ -1,0 +1,54 @@
+From 943c123fd382f9ea1063ff5bccf2ad0d0a106c13 Mon Sep 17 00:00:00 2001
+From: Russ Dill <Russ.Dill@ti.com>
+Date: Wed, 17 Jul 2013 23:33:45 +0100
+Subject: [PATCH 10/17] iio: TI-am335x-adc: Avoid double threshold event
+
+The threshold event handler is being called before the FIFO has
+actually reached the threshold.
+The current code receives a FIFO threshold event, masks the interrupt,
+clears the event, and schedules a workqueue. The workqueue is run, it
+empties the FIFO, and unmasks the interrupt.
+In the above sequence, after the event is cleared, it immediately
+retriggers since the FIFO remains beyond the threshold. When the IRQ is
+unmasked, this triggered event generates another IRQ. However, as the
+FIFO has just been emptied, it is likely to not contain enough samples.
+The waits to clear the event until the FIFO has actually been emptied,
+in the workqueue. The unmasking and masking of the interrupt remains
+unchanged.
+
+Signed-off-by: Russ Dill <Russ.Dill@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
+---
+ drivers/iio/adc/ti_am335x_adc.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/iio/adc/ti_am335x_adc.c b/drivers/iio/adc/ti_am335x_adc.c
+index d7e2426..720f78b 100644
+--- a/drivers/iio/adc/ti_am335x_adc.c
++++ b/drivers/iio/adc/ti_am335x_adc.c
+@@ -184,11 +184,9 @@ static irqreturn_t tiadc_irq(int irq, void *private)
+ 		if (iio_buffer_enabled(idev)) {
+ 			if (!work_pending(&adc_dev->poll_work))
+ 				schedule_work(&adc_dev->poll_work);
+-		} else {
++		} else
+ 			wake_up_interruptible(&adc_dev->wq_data_avail);
+-		}
+-		tiadc_writel(adc_dev, REG_IRQSTATUS,
+-					IRQENB_FIFO1THRES);
++
+ 		return IRQ_HANDLED;
+ 	} else {
+ 		return IRQ_NONE;
+@@ -224,6 +222,8 @@ static void tiadc_poll_handler(struct work_struct *work_s)
+ 	}
+ 
+ 	buffer->access->store_to(buffer, (u8 *) inputbuffer);
++	tiadc_writel(adc_dev, REG_IRQSTATUS,
++			IRQENB_FIFO1THRES);
+ 	tiadc_writel(adc_dev, REG_IRQENABLE,
+ 			IRQENB_FIFO1THRES);
+ 
+-- 
+1.7.9.5
+

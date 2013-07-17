@@ -1,23 +1,22 @@
-From 01bf5561951e572054aea2e18816bf08aad0d571 Mon Sep 17 00:00:00 2001
-From: Zubair Lutfullah <zubair.lutfullah@gmail.com>
-Date: Fri, 5 Jul 2013 00:32:35 +0100
-Subject: [PATCH] IIO: ADC: ti_adc: Fix 1st sample read
+From e4691e92a7b812db6c0e30faeec41cdfd7b2cc34 Mon Sep 17 00:00:00 2001
+From: "Patil, Rachna" <rachna@ti.com>
+Date: Wed, 17 Jul 2013 21:36:07 +0100
+Subject: [PATCH 03/17] iio: TI-am335x-adc: Fix wrong samples received on 1st
+ read
 
 Previously we tried to read data form ADC even before ADC sequencer
-
 finished sampling. This led to wrong samples.
-
 We now wait on ADC status register idle bit to be set.
 
-This patch is based on work in the 3.2 based Arago tree
-maintained by TI. Original Author is Patil Rachna
+Signed-off-by: Patil, Rachna <rachna@ti.com>
+Signed-off-by: Zubair Lutfullah <zubair.lutfullah@gmail.com>
 ---
  drivers/iio/adc/ti_am335x_adc.c      |   30 ++++++++++++++++++++++--------
  include/linux/mfd/ti_am335x_tscadc.h |   16 ++++++++++++++++
  2 files changed, 38 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/iio/adc/ti_am335x_adc.c b/drivers/iio/adc/ti_am335x_adc.c
-index 4427e8e..1f83cf7 100644
+index 4427e8e..f73fee1 100644
 --- a/drivers/iio/adc/ti_am335x_adc.c
 +++ b/drivers/iio/adc/ti_am335x_adc.c
 @@ -60,7 +60,6 @@ static void tiadc_step_config(struct tiadc_device *adc_dev)
@@ -53,7 +52,7 @@ index 4427e8e..1f83cf7 100644
 +				(IDLE_TIMEOUT * adc_dev->channels);
 +	step_en = get_adc_step_mask(adc_dev);
 +	am335x_tsc_se_set(adc_dev->mfd_tscadc, step_en);
-+ 
++
 +	/* Wait for ADC sequencer to complete sampling */
 +	while (tiadc_readl(adc_dev, REG_ADCFSM) & SEQ_STATUS) {
 +		if (time_after(jiffies, timeout))
